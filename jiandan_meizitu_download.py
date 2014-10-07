@@ -8,30 +8,47 @@
 	<img src="http://ww1.sinaimg.cn/mw600/8074970djw1eiqgynb3y4j20rs14s41z.jpg" style="max-width: 608px; max-height: 450px;">
 """
 
-import sys, urllib, time, re, os
+import sys, urllib, urllib2, time, re, os
+from bs4 import BeautifulSoup
 
-def download_img(page):
-    html = urllib.urlopen('http://jandan.net/ooxx/page-' + str(page))
-    pattern = re.compile(r'http://ww\d{1}.sinaimg.cn/mw600/(.+?\.\w+)')
-    
-    imgs = re.findall(pattern, html.read())
-    html.close()
-    if(not os.path.exists('./imgs')):
-        os.mkdir('./imgs')
-    for img in imgs:
-        if not os.path.exists('./imgs/' + img):
-            download_url = 'http://ww1.sinaimg.cn/mw600/' + img
-            urllib.urlretrieve(download_url, './imgs/%s' % img)
-            print img
+lowerbound_page = 1222  #页码下界
+save_path = './img/'
+
+def get_latest_page_num():
+    #找到最新的页码
+    req = urllib2.Request('http://jandan.net/ooxx')
+    fd = urllib2.urlopen(req)
+    html = fd.read()
+
+    soup = BeautifulSoup(html)
+    cur_page = soup.find(class_='current-comment-page').string
+    cur_page = re.search(r'(\d+)' ,cur_page).group(0)
+    return int(cur_page)
+
+def download_img(p1, p2):
+    #按页下载
+    for p in range(p1, p2+1):
+        url = 'http://jandan.net/ooxx/page-' + str(p)
+        req = urllib2.Request(url)
+        fd = urllib2.urlopen(req)
+        html = fd.read()
+
+        soup = BeautifulSoup(html)
+        img_arr =  soup.find(class_='commentlist').find_all('img')
+
+        #下载每一张图片
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+        for img in img_arr:
+            fname = str(p) + '-' + str(re.search(r'.+/(\w+.\w{3})', img['src']).group(1))
+            f_position = os.path.join(save_path, fname)
+            if not os.path.exists(f_position):
+                urllib.urlretrieve(img['src'], f_position)
+
+
+def main():
+    num = get_latest_page_num()
+    download_img(lowerbound_page, num)
 
 if __name__ == '__main__':
-    try:
-        b = int(sys.argv[1])
-        if len(sys.argv) == 3:
-            e = int(sys.argv[2])
-        else:
-            e = b
-        for page in range(b, e+1):
-            download_img(page)
-    except ValueError,e:
-        print u'输入开始页码和结束页码，已空格分开。'
+    main()
