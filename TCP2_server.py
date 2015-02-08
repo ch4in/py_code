@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 #-*- coding:utf-8 -*-
 
 import sys
@@ -36,5 +36,5 @@ while True:
         print data
         client.sendall(data)
 
+client.close()
 server.close()
-
